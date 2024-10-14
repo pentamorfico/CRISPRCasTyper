@@ -37,7 +37,7 @@ class Typer(object):
         end = list(tmp['end'].astype(int))
         
         if operon in self.circ_operons:
-            gene_end = np.argmax(np.diff(list(tmp['Pos'])))
+            gene_end = np.argmax(np.diff(list(tmp['Pos'].astype(int))))
             start_operon = start[gene_end+1]
             end_operon = end[gene_end]
         else:
@@ -188,7 +188,7 @@ class Typer(object):
                        "Best_score": best_score,
                        "Genes": list(tmp['Hmm']),
                        "Prot_IDs": list(tmp['ORF']),
-                       "Positions": list(tmp['Pos']),
+                       "Positions": list(tmp['Pos'].astype(int)),
                        "E-values": ['{:0.2e}'.format(x) for x in list(tmp['Eval'])],
                        "CoverageSeq": [round(x,3) for x in list(tmp['Cov_seq'])],
                        "CoverageHMM": [round(x,3) for x in list(tmp['Cov_hmm'])],
@@ -212,7 +212,7 @@ class Typer(object):
         
         dist = self.dist
         
-        positions = list(data['Pos'])
+        positions = list(data['Pos'].astype(int))
         # Create a list of zeroes to indicate positions
         if self.circular:
             pos_range = max(self.genes[self.genes['Contig'] == list(data['Acc'])[0]]['Pos']) * [0]
@@ -240,7 +240,9 @@ class Typer(object):
                     clust[clust == last_num] = first_num
                     is_circ = True
         # Extract cluster id for each gene
-        return [[list(data['Acc'])[0] + "@" + str(clust[x-1]) for x in positions], is_circ]
+        operon_ids = [data['Acc'].iloc[0] + "@" + str(clust[x - 1]) for x in positions]
+
+        return pd.DataFrame({'operon': operon_ids}, index=data.index)
     
     def typing(self):
         '''
@@ -274,9 +276,10 @@ class Typer(object):
             if self.circular and self.redo:
                 self.genes = pd.read_csv(self.out+'genes.tab', sep='\t')
             
-            self.hmm_df = self.hmm_df.sort_values('Acc')
-            operons = self.hmm_df.groupby('Acc').apply(self.cluster_adj)
-            self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
+            operons = self.hmm_df.groupby('Acc', group_keys=False).apply(self.cluster_adj)
+            flat_operons = list(chain.from_iterable(operons)) 
+            self.hmm_df['operon'] = operons['operon']
+            #self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
 
             # If any circular
             self.circ_operons = []
@@ -300,7 +303,7 @@ class Typer(object):
             self.hmm_df_all = pd.merge(self.hmm_df, self.scores, on="Hmm")
 
             # Assign subtype for each operon
-            operons_unq = set(self.hmm_df_all['operon'])
+            operons_unq = set(self.hmm_df_all['operon'].dropna())
             dictlst = [self.type_operon(operonID) for operonID in operons_unq]
             
             # Return
