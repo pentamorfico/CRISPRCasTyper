@@ -325,8 +325,8 @@ class Typer(object):
     def write_type(self):
         
         if self.any_operon:
-            operons_good = self.preddf[~self.preddf['Prediction'].isin(['False', 'Ambiguous'])]
-            operons_put = self.preddf[self.preddf['Prediction'].isin(['False', 'Ambiguous'])]
+            operons_good = self.preddf[~self.preddf['Prediction'].isin(['False'])]
+            operons_put = self.preddf[self.preddf['Prediction'].isin(['False'])]
 
             if len(operons_good) > 0:
                 operons_good.to_csv(self.out+'cas_operons.tab', sep='\t', index=False)
