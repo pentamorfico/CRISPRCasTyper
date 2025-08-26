@@ -278,7 +278,7 @@ class Typer(object):
             if self.circular and self.redo:
                 self.genes = pd.read_csv(self.out+'genes.tab', sep='\t')
             
-            operons = self.hmm_df.groupby('Acc', group_keys=False).apply(self.cluster_adj)
+            operons = self.hmm_df.groupby('Acc', group_keys=False).apply(self.cluster_adj, include_groups=False)
             flat_operons = list(chain.from_iterable(operons)) 
             self.hmm_df.loc[:, 'operon'] = operons['operon']
             #self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
