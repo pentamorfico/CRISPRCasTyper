@@ -211,7 +211,12 @@ class Typer(object):
         '''
         
         dist = self.dist
-        
+        # Add grouping column if missing (for include_groups=False)
+        if 'Acc' not in data.columns:
+            acc = data.name if hasattr(data, 'name') else None
+            if acc is not None:
+                data = data.copy()
+                data['Acc'] = acc
         positions = list(data['Pos'].astype(int))
         # Create a list of zeroes to indicate positions
         if self.circular:

@@ -109,6 +109,12 @@ class HMMER(object):
 
         # Coverages of aligments
         def covs(df_sub):
+            # Add grouping columns if missing (for include_groups=False)
+            if 'Hmm' not in df_sub.columns or 'ORF' not in df_sub.columns:
+                hmm, orf = df_sub.name
+                df_sub = df_sub.copy()
+                df_sub['Hmm'] = hmm
+                df_sub['ORF'] = orf
             df_sub['Cov_seq'] = len(set([x for sublst in [list(range(i,j)) 
                 for i,j in zip(df_sub['ali_from'], df_sub['ali_to']+1)] 
                 for x in sublst])) / df_sub['tlen']
