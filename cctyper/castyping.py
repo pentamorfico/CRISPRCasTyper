@@ -267,12 +267,12 @@ class Typer(object):
             not_in_sub = ~self.hmm_df['Hmm'].isin(which_sub)
             self.hmm_df = self.hmm_df[mask | not_in_sub]
 
-            # Apply overall thresholds for the rest
-        mask = ((self.hmm_df['Cov_seq'] >= self.ocs) &
-            (self.hmm_df['Cov_hmm'] >= self.och) &
-            (self.hmm_df['Eval'] < self.oev))
-        in_specifics = self.hmm_df['Hmm'].isin(specifics)
-        self.hmm_df = self.hmm_df[mask | in_specifics]
+                # Apply overall thresholds for the rest
+            mask = ((self.hmm_df['Cov_seq'] >= self.ocs) &
+                (self.hmm_df['Cov_hmm'] >= self.och) &
+                (self.hmm_df['Eval'] < self.oev))
+            in_specifics = self.hmm_df['Hmm'].isin(specifics)
+            self.hmm_df = self.hmm_df[mask | in_specifics]
           
             # Define operons
             if self.circular and self.redo:
