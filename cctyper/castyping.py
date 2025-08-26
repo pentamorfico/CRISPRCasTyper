@@ -261,16 +261,18 @@ class Typer(object):
                 which_sub = [i for i in list(self.hmm_df['Hmm']) if key.lower() in i.lower()]
                 if len(which_sub) > 0:
                     specifics.extend(which_sub)
-                    self.hmm_df = self.hmm_df[((self.hmm_df['Eval'] < float(value[0])) & 
-                                                (self.hmm_df['Cov_seq'] >= float(value[1])) &
-                                                (self.hmm_df['Cov_hmm'] >= float(value[2]))) |
-                                                ([x not in which_sub for x in self.hmm_df['Hmm']])]
+            mask = ((self.hmm_df['Eval'] < float(value[0])) &
+                (self.hmm_df['Cov_seq'] >= float(value[1])) &
+                (self.hmm_df['Cov_hmm'] >= float(value[2])))
+            not_in_sub = ~self.hmm_df['Hmm'].isin(which_sub)
+            self.hmm_df = self.hmm_df[mask | not_in_sub]
 
             # Apply overall thresholds for the rest
-            self.hmm_df = self.hmm_df[((self.hmm_df['Cov_seq'] >= self.ocs) & 
-                                        (self.hmm_df['Cov_hmm'] >= self.och) & 
-                                        (self.hmm_df['Eval'] < self.oev)) |
-                                        ([x in specifics for x in self.hmm_df['Hmm']])]
+        mask = ((self.hmm_df['Cov_seq'] >= self.ocs) &
+            (self.hmm_df['Cov_hmm'] >= self.och) &
+            (self.hmm_df['Eval'] < self.oev))
+        in_specifics = self.hmm_df['Hmm'].isin(specifics)
+        self.hmm_df = self.hmm_df[mask | in_specifics]
           
             # Define operons
             if self.circular and self.redo:
@@ -278,7 +280,7 @@ class Typer(object):
             
             operons = self.hmm_df.groupby('Acc', group_keys=False).apply(self.cluster_adj)
             flat_operons = list(chain.from_iterable(operons)) 
-            self.hmm_df['operon'] = operons['operon']
+            self.hmm_df.loc[:, 'operon'] = operons['operon']
             #self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
 
             # If any circular

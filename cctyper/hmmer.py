@@ -120,7 +120,7 @@ class HMMER(object):
             df_sub = df_sub.drop_duplicates()
             return df_sub
 
-        hmm_df = hmm_df.groupby(['Hmm','ORF']).apply(covs)
+    hmm_df = hmm_df.groupby(['Hmm','ORF'], group_keys=False).apply(covs)
         hmm_df.reset_index(drop=True, inplace=True)
         self.hmm_df = hmm_df.drop_duplicates()
     # Write to file
