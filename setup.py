@@ -34,7 +34,7 @@ setuptools.setup(
         "scikit-learn >= 1.4",
         "xgboost >= 2.0",
         "tqdm >= 4.66",
-        "drawsvg >= 2.4.1",
+        "drawsvg[raster] >= 2.4.1",
         "setuptools"],
     scripts=['bin/cctyper',
              'bin/repeatType',

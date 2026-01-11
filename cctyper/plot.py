@@ -302,7 +302,7 @@ class Map(object):
             width = width + (self.expand * 2)
             self.imheight = int(round((total+1)*20*self.scale))
 
-            self.im = draw.Drawing(int(round(self.scale/50*width+self.scale*10)), self.imheight, displayInline=False, origin=(0,0))
+            self.im = draw.Drawing(int(round(self.scale/50*width+self.scale*10)), self.imheight, display_inline=False, origin=(0,0))
 
             if not self.nogrid:
                 # Draw grid
@@ -457,14 +457,14 @@ class Map(object):
                     self.draw_array(self.expand + 1, self.expand + 1 + end - start, pred, k, 1, reps)
                     self.draw_name(k, pred, i, start, end)
                     
-            self.im.saveSvg(self.out+'plot.svg')
+            self.im.save_svg(self.out+'plot.svg')
             try: 
                 self.im.setPixelScale(int(round(self.im.width/(250*self.scale))))
-                self.im.savePng(self.out+'plot.png')
+                self.im.save_png(self.out+'plot.png')
             except:
                 logging.warning('PNG plot failed. Trying lower resolution')
                 try:
                     self.im.setPixelScale(3)
-                    self.im.savePng(self.out+'plot.png')
+                    self.im.save_png(self.out+'plot.png')
                 except:
                     logging.warning('PNG plot failed')

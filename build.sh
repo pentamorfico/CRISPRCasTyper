@@ -1,5 +1,5 @@
 $PYTHON -m pip install . -vv
-$PYTHON -m pip install "drawsvg>=2.4.1" -vv
+$PYTHON -m pip install "drawsvg[raster]>=2.4.1" -vv
 
 cat >${RECIPE_DIR}/activate.sh <<EOF
 #!/bin/sh
