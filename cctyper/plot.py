@@ -459,12 +459,12 @@ class Map(object):
                     
             self.im.save_svg(self.out+'plot.svg')
             try: 
-                self.im.setPixelScale(int(round(self.im.width/(250*self.scale))))
+                self.im.set_pixel_scale(int(round(self.im.width/(250*self.scale))))
                 self.im.save_png(self.out+'plot.png')
             except:
                 logging.warning('PNG plot failed. Trying lower resolution')
                 try:
-                    self.im.setPixelScale(3)
+                    self.im.set_pixel_scale(3)
                     self.im.save_png(self.out+'plot.png')
                 except:
                     logging.warning('PNG plot failed')
