@@ -2,17 +2,18 @@ import logging
 import re
 import os
 import itertools
+from typing import List, Tuple, Dict, Any
 
 import pandas as pd
 
 class CRISPRCas(object):
     
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
 
-    def crisprcas(self):
+    def crisprcas(self) -> None:
         
         # Define distance functions
         def dist(x,y,ss,co):

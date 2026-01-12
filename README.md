@@ -1,5 +1,5 @@
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![Conda](https://anaconda.org/russel88/cctyper/badges/installer/conda.svg)](https://anaconda.org/russel88/cctyper)
+[![Install: pip recommended](https://img.shields.io/badge/install-pip%20recommended-orange)](https://pypi.org/project/cctyper/)
 
 # CRISPRCasTyper
 
@@ -49,60 +49,39 @@ Find a free to read version on [BioRxiv](https://doi.org/10.1101/2020.05.15.0978
 ## Quick start <a name="quick"></a>
 
 ```sh
-conda create -n cctyper -c conda-forge -c bioconda -c russel88 cctyper
-conda activate cctyper
 cctyper my.fasta my_output
 ```
 
-## Installation <a name="install"></a>
-CRISPRCasTyper can be installed either through conda or pip.
-
-It is advised to use conda, since this installs CRISPRCasTyper and all dependencies, and downloads the database in one go.
-
-### Conda
-Use [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [anaconda](https://www.anaconda.com/) to install.
-
-Create the environment with CRISPRCasTyper and all dependencies and database
 ```sh
-conda create -n cctyper -c conda-forge -c bioconda -c russel88 cctyper
+usage: cctyper [-h] [-t THREADS] [--prodigal {single,meta}] [--circular] [--keep_tmp] [--log_lvl {DEBUG,INFO,WARNING,ERROR}] [--redo_typing] [--simplelog] [--gff GFF] [--prot PROT] [--db DB] [--dist DIST] [--overall_eval OVERALL_EVAL] [--overall_cov_seq OVERALL_COV_SEQ] [--overall_cov_hmm OVERALL_COV_HMM] [--ccd CCD] [--pred_prob PRED_PROB] [--kmer KMER] [--repeat_id REPEAT_ID] [--spacer_id SPACER_ID] [--spacer_sem SPACER_SEM] [--exact_stats] [--seed SEED]
+               [--skip_blast] [--searchWL SEARCHWL] [--minNR MINNR] [--minRL MINRL] [--maxRL MAXRL] [--minSL MINSL] [--maxSL MAXSL] [--expand EXPAND] [--custom_hmm CUSTOM_HMM] [--no_plot] [--no_grid]
+               input output
+
+CRISPRCasTyper version 1.9.0
+
+positional arguments:
+  input                 Input fasta file
+  output                Prefix for output directory
 ```
+
+## Installation <a name="install"></a>
+
+
+> **Note**: We no longer advise installing via conda. The full pipeline (CRISPR detection, HMM searches, ORF prediction) now runs inside Python via diced, pyhmmsearch/pyhmmer, and pyrodigal-gv, and the database/models ship with the wheel/sdist. The only external binary you need is BLAST+ (`makeblastdb`/`blastn`) available from bioconda or your OS package manager.
 
 ### pip
-If you have the dependencies (Python >= 3.10) in your PATH you can install with pip. External tools still needed: `blastn`/`makeblastdb`. CRISPR detection, HMM searches, numeric-header fixes, and ORF prediction now run in Python via diced, pyhmmsearch/pyhmmer, and pyrodigal-gv.
+If you have the dependencies (Python >= 3.10) you can install with pip. External tools still needed: `blastn`/`makeblastdb` (install via `conda install -c bioconda blast`)
 
-Install cctyper python module
+Install from the repo:
 ```sh
-python -m pip install cctyper
+mamba create -n cctyper bioconda::blast python>=3.10
+mamba activate cctyper
+pip install git+https://github.com/pentamorfico/CRISPRCasTyper.git
 ```
 
-Upgrade cctyper python module to the latest version
-```sh
-python -m pip install cctyper --upgrade
-```
-
-
-#### When installing with pip, you need to download the database manually: 
-```sh
-# Download and unpack
-svn checkout https://github.com/Russel88/CRISPRCasTyper/trunk/data
-tar -xvzf data/Profiles.tar.gz
-mv Profiles/ data/
-rm data/Profiles.tar.gz
-
-# Tell CRISPRCasTyper where the data is:
-# either by setting an environment variable (has to be done for each terminal session, or added to .bashrc):
-export CCTYPER_DB="/path/to/data/"
-# or by using the --db argument each time you run CRISPRCasTyper:
-cctyper input.fa output --db /path/to/data/
-```
 
 ## CRISPRCasTyper - How to <a name="cctyperhow"></a>
 CRISPRCasTyper takes as input a nucleotide fasta, and produces outputs with CRISPR-Cas predictions
-
-#### Activate environment
-```sh
-conda activate cctyper
-```
 
 #### Run with a nucleotide fasta as input
 ```sh

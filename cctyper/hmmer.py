@@ -5,6 +5,7 @@ import sys
 import io
 import pathlib
 from functools import partial
+from typing import Iterator, Iterable, Tuple
 
 import pandas as pd
 import pyhmmer
@@ -13,12 +14,12 @@ from tqdm import tqdm
 
 class HMMER(object):
     
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
 
-    def main_hmm(self):
+    def main_hmm(self) -> None:
         # If redo just get the table
         if self.redo:
             self.read_hmm()
@@ -39,7 +40,7 @@ class HMMER(object):
         self.load_custom_hmm()
 
     # A single search
-    def run_hmm(self):
+    def run_hmm(self) -> None:
         
         logging.info('Running HMMER (pyhmmer) against Cas profiles')
 
@@ -176,7 +177,7 @@ class HMMER(object):
         hmm_df = hmm_df.loc[:, ~hmm_df.columns.duplicated()]
         self.hmm_df = hmm_df.drop_duplicates()
 
-    def _iter_hmms(self, alphabet):
+    def _iter_hmms(self, alphabet: pyhmmer.easel.Alphabet) -> Iterator[pyhmmer.plan7.HMM]:
 
         def load_plain(path: pathlib.Path):
             with pyhmmer.plan7.HMMFile(path) as hmm_file:
@@ -206,7 +207,7 @@ class HMMER(object):
         else:
             yield from load_plain(pathlib.Path(self.hmm_db))
 
-    def _parse_prodigal_header(self, seq):
+    def _parse_prodigal_header(self, seq) -> Tuple[int, int, int]:
         desc = (seq.description or b"").decode()
         start = end = strand = 0
         if '#' in desc:
@@ -225,7 +226,7 @@ class HMMER(object):
         return start, end, strand
 
     # Load data
-    def load_hmm(self):
+    def load_hmm(self) -> None:
     
         logging.debug('Loading HMMER output')
         
@@ -290,11 +291,11 @@ class HMMER(object):
         self.hmm_df = self.hmm_df[cols]
 
     # Write to file
-    def write_hmm(self):
+    def write_hmm(self) -> None:
         self.hmm_df.to_csv(self.out+'hmmer.tab', sep='\t', index=False)
 
     # Read from file
-    def read_hmm(self):
+    def read_hmm(self) -> None:
         try:        
             self.hmm_df = pd.read_csv(self.out+'hmmer.tab', sep='\t')
         except:
@@ -302,7 +303,7 @@ class HMMER(object):
             sys.exit()
 
     # Check if any cas genes
-    def check_hmm(self):
+    def check_hmm(self) -> None:
         if len(self.hmm_df) == 0:
             logging.info('No Cas proteins found.')
         else:

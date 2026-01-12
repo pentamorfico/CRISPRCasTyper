@@ -12,17 +12,18 @@ import statistics as st
 from Bio import SeqIO
 from Bio.Seq import Seq
 from joblib import Parallel, delayed
+from typing import List, Tuple, Dict
 
 from cctyper.minced import CRISPR
 
 class RepeatMatch(object):
     
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
     
-    def run(self):
+    def run(self) -> None:
         
         if self.any_operon and not self.skip_blast:
             
@@ -35,7 +36,7 @@ class RepeatMatch(object):
         # Write CRISPR gff
         self.write_gff()
 
-    def make_db(self):
+    def make_db(self) -> None:
         '''
         Make a BLAST database
         '''
@@ -48,7 +49,7 @@ class RepeatMatch(object):
                         '-out', self.out+'Flank'], 
                         stdout=subprocess.DEVNULL)
     
-    def align(self):
+    def align(self) -> None:
         '''
         BLASTing repeat database
         '''
@@ -67,7 +68,7 @@ class RepeatMatch(object):
                         '-qcov_hsp_perc', str(90)])
 
 
-    def clust(self):
+    def clust(self) -> None:
         '''
         Load the BLAST table and run the different clustering steps
         '''
@@ -105,31 +106,31 @@ class RepeatMatch(object):
                 self.df_array = self.df_cluster[self.df_cluster['Cluster'].isin(cluster_array)]
                 self.convert_array()
 
-    def overlap(self,x,y):
+    def overlap(self,x: Tuple[int,int], y: Tuple[int,int]) -> bool:
         '''
         Evaluate whether two (start,end) tuples overlap
         '''
         return x[0] <= y[1] and y[0] <= x[1]
 
-    def overlap_any(self,x,ll):
+    def overlap_any(self,x: Tuple[int,int], ll: List[Tuple[int,int]]) -> bool:
         '''
         Evaluate whether a (start,end) tuple has overlap with any in a list of tuples
         '''
         return any([self.overlap(x,y) for y in ll])
 
-    def distance(self,x,y):
+    def distance(self,x: Tuple[int,int], y: Tuple[int,int]) -> int:
         '''
         Calculate distance between two (start,end) tuples
         '''
         return y[0]-x[1] if y[0]>x[1] else x[0]-y[1]
 
-    def distance_all(self,x,ll):
+    def distance_all(self,x: Tuple[int,int], ll: List[Tuple[int,int]]) -> List[int]:
         '''
         Get all distances between a (start,end) tuple and a list of tuples
         '''
         return [self.distance(x,y) for y in ll]
     
-    def remove_overlap(self):
+    def remove_overlap(self) -> None:
         '''
         If matches overlap keep only the best
         '''
@@ -165,7 +166,7 @@ class RepeatMatch(object):
         # If several contigs, concatenate
         self.df_overlap = pd.concat(overlap_lst)
 
-    def cluster_adj(self):
+    def cluster_adj(self) -> None:
         '''
         Cluster adjacent matches into arrays
         '''
