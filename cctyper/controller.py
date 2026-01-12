@@ -7,8 +7,6 @@ import shutil
 import json
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
-from typing import Dict, Any
-
 import pandas as pd
 
 from Bio import SeqIO
@@ -134,8 +132,8 @@ class Controller(object):
         
         # Get sequence lengths
         with open(self.fasta, 'r') as handle:
-            self.len_dict: Dict[str, int] = {}
-            self.seq_dict: Dict[str, Any] = {}
+            self.len_dict = {}
+            self.seq_dict = {}
             for fa in SeqIO.parse(handle, 'fasta'):
                 if fa.id in self.len_dict:
                     logging.error('Duplicate fasta headers detected')
