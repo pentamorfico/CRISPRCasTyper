@@ -1,7 +1,6 @@
 import logging
 import os
 import sys
-from typing import Dict, List
 
 import pandas as pd
 import numpy as np
@@ -10,7 +9,7 @@ import xgboost as xgb
 
 class XGB(object):
 
-    def __init__(self, obj) -> None:
+    def __init__(self, obj):
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
@@ -19,7 +18,7 @@ class XGB(object):
         base_rev = "TGCA"
         self.comp_tab = str.maketrans(base_for, base_rev)
     
-    def load_xgb_model(self) -> None:
+    def load_xgb_model(self):
 
         logging.debug('Loading xgboost model')
 
@@ -58,7 +57,7 @@ class XGB(object):
             rs = (ll.rstrip().split(':') for ll in f)
             self.label_dict = {r[1]:r[0] for r in rs} 
 
-    def generate_canonical_kmer(self) -> None:
+    def generate_canonical_kmer(self):
 
         logging.debug('Generating canonical {}mers'.format(self.kmer))
 
@@ -69,7 +68,7 @@ class XGB(object):
         can_kmer.sort()
         self.can_kmer = can_kmer
 
-    def count_kmer(self, seq: str) -> Dict[str, int]:
+    def count_kmer(self, seq):
         kmer_d = {}
         for i in range(len(seq) - self.kmer + 1):
             kmer_for = seq[i:(i+self.kmer)]
@@ -84,7 +83,7 @@ class XGB(object):
                 kmer_d[kmer] = 1
         return kmer_d
 
-    def xgb_run(self) -> None:
+    def xgb_run(self):
         
         if not self.redo:
             
@@ -118,7 +117,7 @@ class XGB(object):
                 
                 df.to_csv(self.out+'crisprs_all.tab', sep='\t', index=False)
     
-    def predict_repeats(self) -> None:
+    def predict_repeats(self):
 
         logging.info('Predicting subtype of CRISPR repeats')
         
@@ -147,7 +146,7 @@ class XGB(object):
         # Convert to type string
         self.z_type = [self.label_dict[str(x)] for x in self.z_best]
 
-    def print_xgb(self) -> None:
+    def print_xgb(self):
         
         for i in range(len(self.repeats)):
             print('{}\t{}\t{}'.format(self.repeats[i], 

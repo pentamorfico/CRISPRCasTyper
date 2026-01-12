@@ -6,16 +6,14 @@ import pandas as pd
 
 import drawsvg as draw
 
-from typing import List, Tuple, Any
-
 class Map(object):
     
-    def __init__(self, obj) -> None:
+    def __init__(self, obj):
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
         
-    def draw_gene(self, start: int, end: int, strand: int, name: Any, n: int, z: int, put: bool) -> None:
+    def draw_gene(self, start, end, strand, name, n, z, put):
 
         if isinstance(name, str):
             font_size = 26
@@ -69,7 +67,7 @@ class Map(object):
         else:
             self.im.append(draw.Text(name, font_size, self.scale/50*start+10, self.imheight-(n*20*self.scale+8*self.scale), fill='black'))
 
-    def draw_array(self, start: int, end: int, subtype: str, n: int, z: int, n_reps: int) -> None:
+    def draw_array(self, start, end, subtype, n, z, n_reps):
         self.im.append(draw.Lines(
                     10+self.scale/50*start, self.imheight-(n*20*self.scale), 
                     10+self.scale/50*end, self.imheight-(n*20*self.scale), 
@@ -105,10 +103,10 @@ class Map(object):
         else:
             self.im.append(draw.Text('CRISPR: '+subtype, 26, 10+self.scale/50*start, self.imheight-(n*20*self.scale-1*self.scale), fill='black'))
 
-    def draw_name(self, n: int, pred: str, contig: str, start: int, end: int) -> None:
+    def draw_name(self, n, pred, contig, start, end):
         self.im.append(draw.Text('{}: {} ({}-{})'.format(pred, contig, start, end), 38, 15+self.scale/10, self.imheight-(n*20*self.scale-6*self.scale), fill='black'))
 
-    def draw_system(self, cas: List[Tuple[Any, ...]], crispr: List[Tuple[Any, ...]], n: int) -> None:
+    def draw_system(self, cas, crispr, n):
         z = 0
         if len(cas) > 0:
             for i in cas:
@@ -119,7 +117,7 @@ class Map(object):
                 z += 1
                 self.draw_array(i[0], i[1], i[2], n, z, i[3])
 
-    def criscas_len(self, cc: pd.DataFrame, cca: pd.DataFrame):
+    def criscas_len(self, cc, cca):
         
         lengths = []
         self.criscaspos = {}
@@ -156,7 +154,7 @@ class Map(object):
 
         return lengths
             
-    def get_longest(self, crisO: pd.DataFrame, casO: pd.DataFrame, criscasO: pd.DataFrame, crisA: pd.DataFrame):
+    def get_longest(self, crisO, casO, criscasO, crisA):
         crisO_M, casO_M, cc_M = 0, 0, 0
         if len(crisO) > 0:
             crisO_M = max(crisO['End']-crisO['Start'])

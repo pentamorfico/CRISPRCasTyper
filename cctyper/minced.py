@@ -4,7 +4,6 @@ import math
 import random
 
 import statistics as st
-from typing import List
 from diced import scan
 
 from joblib import Parallel, delayed
@@ -12,25 +11,25 @@ from joblib import Parallel, delayed
 # Define the CRISPR class
 class CRISPR(object):
     count = 0
-    def __init__(self, sequence: str, exact_stats: bool):
+    def __init__(self, sequence, exact_stats):
         self.sequence = sequence.rstrip()
         CRISPR.count += 1
         self.crispr = '{}_{}'.format(self.sequence, CRISPR.count)
         self.repeats = []
         self.spacers = []
         self.exact = exact_stats
-    def setPos(self, start: int, end: int) -> None:
+    def setPos(self, start, end):
         self.start = int(start)
         self.end = int(end)
-    def addRepeat(self, repeat: str) -> None:
+    def addRepeat(self, repeat):
         self.repeats.append(repeat.rstrip())
-    def addSpacer(self, spacer: str) -> None:
+    def addSpacer(self, spacer):
         put_spacer = spacer.rstrip()
         if len(put_spacer) > 0:
             self.spacers.append(put_spacer)
-    def getConsensus(self) -> None:
+    def getConsensus(self):
         self.cons = max(set(self.repeats), key = self.repeats.count) 
-    def identity(self, i: int, j: int, sqlst: List[str]) -> float:
+    def identity(self, i, j, sqlst):
         # Equivalent to pairwise2.globalxx: identity based on LCS length over max length
         a = sqlst[i]
         b = sqlst[j]
@@ -48,7 +47,7 @@ class CRISPR(object):
             prev = curr
         lcs_len = prev[-1]
         return (lcs_len / float(max(m, n))) * 100
-    def identLoop(self, seqs: List[str], threads: int) -> float:
+    def identLoop(self, seqs, threads):
         if self.exact:
             sqr = range(len(seqs))
         else:
@@ -59,7 +58,7 @@ class CRISPR(object):
             sqr = random.sample(range(len(seqs)), n_samp)
         idents = Parallel(n_jobs=threads)(delayed(self.identity)(k, l, seqs) for k in sqr for l in sqr if k > l)
         return(st.mean(idents))
-    def stats(self, threads: int, rep_id: float, spa_id: float, spa_sem: float) -> None:
+    def stats(self, threads, rep_id, spa_id, spa_sem):
         if len(self.spacers) > 1:
             self.spacer_identity = round(self.identLoop(self.spacers, threads), 1)
             self.spacer_len = round(st.mean([len(x) for x in self.spacers]), 1)
@@ -74,7 +73,7 @@ class CRISPR(object):
 
 class Minced(object):
     
-    def __init__(self, obj) -> None:
+    def __init__(self, obj):
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
