@@ -1,23 +1,29 @@
+from __future__ import annotations
+
 import os
 import logging
 import sys
 import shutil
 import json
-import pkg_resources
-import subprocess
+from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
+from typing import Dict, Any
 
 import pandas as pd
 
 from Bio import SeqIO
+from cctyper.resources import resolve_database_path
 
 class Controller(object):
 
     def __init__(self, args):
        
-        self.fasta = args.input
-        self.out = args.output
+        self.fasta: str = args.input
+        self.out: str = args.output
         self.threads = args.threads
         self.dist = args.dist
+        self.gff = args.gff
+        self.prot = args.prot
         self.prod = args.prodigal
         self.db = args.db
         self.circular = args.circular
@@ -55,11 +61,16 @@ class Controller(object):
         self.any_crispr = False
 
         # Logger
+        try:
+            cctyper_version = version("cctyper")
+        except PackageNotFoundError:
+            cctyper_version = "unknown"
+
         if self.simplelog:
             logging.basicConfig(format='[%(asctime)s] %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=self.lvl)
         else:
             logging.basicConfig(format='\033[36m'+'[%(asctime)s] %(levelname)s:'+'\033[0m'+' %(message)s', datefmt='%Y-%m-%d %H:%M:%S', level=self.lvl)
-        logging.info('Running CRISPRCasTyper version {}'.format(pkg_resources.require("cctyper")[0].version))
+        logging.info('Running CRISPRCasTyper version {}'.format(cctyper_version))
 
         # kmer warning
         if self.kmer != 4:
@@ -108,12 +119,23 @@ class Controller(object):
             logging.error('Could not find input file')
             sys.exit()
 
+        if self.gff or self.prot:
+            if not (self.gff and self.prot):
+                logging.error('Both --gff and --prot must be provided together')
+                sys.exit()
+            if not os.path.isfile(self.gff):
+                logging.error('Could not find GFF file %s', self.gff)
+                sys.exit()
+            if not os.path.isfile(self.prot):
+                logging.error('Could not find protein FASTA file %s', self.prot)
+                sys.exit()
+
     def check_fasta(self):
         
         # Get sequence lengths
         with open(self.fasta, 'r') as handle:
-            self.len_dict = {}
-            self.seq_dict = {}
+            self.len_dict: Dict[str, int] = {}
+            self.seq_dict: Dict[str, Any] = {}
             for fa in SeqIO.parse(handle, 'fasta'):
                 if fa.id in self.len_dict:
                     logging.error('Duplicate fasta headers detected')
@@ -132,10 +154,14 @@ class Controller(object):
         
         if self.num_headers:
             logging.warning('Numeric fasta headers detected. A prefix is added to the names')
-            new_fasta = open(self.out+'fixed_input.fna', 'w')
-            subprocess.run(['sed', 's/^>/>Contig/', self.fasta], stdout = new_fasta)
-            new_fasta.close()
-            self.fasta = self.out+'fixed_input.fna'
+            fixed_path = Path(self.out) / 'fixed_input.fna'
+            with open(self.fasta, 'r') as src, fixed_path.open('w') as dst:
+                for line in src:
+                    if line.startswith('>'):
+                        dst.write('>Contig'+line[1:])
+                    else:
+                        dst.write(line)
+            self.fasta = str(fixed_path)
             self.len_dict = {'Contig'+str(key): val for key, val in self.len_dict.items()}
             self.seq_dict = {'Contig'+str(key): val for key, val in self.seq_dict.items()}
 
@@ -145,7 +171,7 @@ class Controller(object):
             if self.num_headers:
                 os.remove(self.out+'fixed_input.fna')
 
-            if os.stat(self.out+'hmmer.log').st_size == 0:
+            if os.path.exists(self.out+'hmmer.log') and os.stat(self.out+'hmmer.log').st_size == 0:
                 os.remove(self.out+'hmmer.log')
 
             if self.customhmm != '':
@@ -156,11 +182,12 @@ class Controller(object):
                 
                 logging.info('Removing temporary files')
                 
-                shutil.rmtree(self.out+'hmmer')
-                
-                os.remove(self.out+'minced.out')
-                os.remove(self.out+'prodigal.log')
-                os.remove(self.out+'proteins.faa')
+                shutil.rmtree(self.out+'hmmer', ignore_errors=True)
+
+                for tmp_file in ['minced.out', 'prodigal.log', 'proteins.faa']:
+                    tmp_path = self.out + tmp_file
+                    if os.path.exists(tmp_path):
+                        os.remove(tmp_path)
 
                 if os.path.exists(self.out+'blast.tab'):
                     os.remove(self.out+'blast.tab')
@@ -170,16 +197,16 @@ class Controller(object):
                     os.remove(self.out+'Flank.nsq')
 
     def check_db(self):
-        
-        if self.db == '':
-            try:
-                self.db = os.environ['CCTYPER_DB']
-            except:
-                logging.error('Could not find database directory')
-                sys.exit()
+
+        try:
+            self.db = resolve_database_path(self.db, logger=logging.getLogger(__name__))
+        except RuntimeError as err:
+            logging.error(err)
+            sys.exit()
 
         self.scoring = os.path.join(self.db, 'CasScoring.csv')
-        self.pdir = os.path.join(self.db, 'Profiles', '')
+        self.hmm_compressed = os.path.join(self.db, 'cctyper_profiles.hmm.zst')
+        self.hmm_plain = os.path.join(self.db, 'cctyper_profiles.hmm')
         self.xgb = os.path.join(self.db, "xgb_repeats.model")
         self.typedict = os.path.join(self.db, "type_dict.tab")
         self.cutoffdb = os.path.join(self.db, "cutoffs.tab")
@@ -198,14 +225,13 @@ class Controller(object):
             logging.error('CasScoring table could not be found')
             sys.exit()
 
-        # Look if HMM profile dir exists
-        if os.path.isdir(self.pdir):
-            for i in os.listdir(self.pdir):
-                if not i.lower().endswith('.hmm'):
-                    logging.error('There are non-HMM profiles in the HMM profile directory')
-                    sys.exit()
+        # Locate HMM profile database (zstd preferred)
+        if os.path.isfile(self.hmm_plain):
+            self.hmm_db = self.hmm_plain
+        elif os.path.isfile(self.hmm_compressed):
+            self.hmm_db = self.hmm_compressed
         else:
-            logging.error('Could not find HMM profile directory')
+            logging.error('Could not find HMM profile database (expected %s or %s)', self.hmm_compressed, self.hmm_plain)
             sys.exit()
 
         # Load specific cutoffs
@@ -218,4 +244,3 @@ class Controller(object):
             self.compl_interf = json.load(f)
         with open(self.addb, 'r') as f:
             self.compl_adapt = json.load(f)
-

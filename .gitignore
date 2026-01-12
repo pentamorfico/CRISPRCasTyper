@@ -9,3 +9,4 @@ bld.bat
 meta.yaml
 conda_builds/
 *.txt
+**/cctyper_profiles.hmm

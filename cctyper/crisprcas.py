@@ -75,6 +75,8 @@ class CRISPRCas(object):
                 # Loop over operons
                 for operon in set(cas_sub['Operon']):
                     cas_operon = cas_sub[cas_sub['Operon'] == operon]
+                    operon_start = int(cas_operon['Start'].iloc[0])
+                    operon_end = int(cas_operon['End'].iloc[0])
 
                     if self.circular:
                         seq_size = self.len_dict[list(cas_operon['Contig'])[0]]
@@ -84,7 +86,7 @@ class CRISPRCas(object):
                         circ_op = False
 
                     # Find distances between operon and crisprs
-                    dists = dist_ll((int(cas_operon['Start']), int(cas_operon['End'])), zip(crispr_sub['Start'], crispr_sub['End']), seq_size, circ_op)
+                    dists = dist_ll((operon_start, operon_end), zip(crispr_sub['Start'], crispr_sub['End']), seq_size, circ_op)
                     
                     cc_circs = [x[1] for x in dists]
                     distances = [x[0] for x in dists]
@@ -106,7 +108,7 @@ class CRISPRCas(object):
                         outdict = {
                         'Contig': list(cas_operon['Contig'])[0],
                         'Operon': list(cas_operon['Operon'])[0],
-                        'Operon_Pos': [list(cas_operon['Start'])[0], list(cas_operon['End'])[0]],     
+                        'Operon_Pos': [operon_start, operon_end],
                         'CRISPRs': list(crispr_operon['CRISPR']),
                         'Distances': [0 if x<0 else x for x in distances if x <= self.crispr_cas_dist],
                         'Prediction_Cas': list(cas_operon['Prediction'])[0],
@@ -211,4 +213,3 @@ class CRISPRCas(object):
                     crispr_put.to_csv(self.out+'crisprs_putative.tab', sep='\t', index=False)
                 if len(crispr) > 0:
                     crispr.to_csv(self.out+'crisprs_orphan.tab', sep='\t', index=False)
-

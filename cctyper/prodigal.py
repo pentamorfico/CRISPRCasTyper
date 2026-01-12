@@ -1,10 +1,8 @@
-import os
-import subprocess
 import logging
 import sys
-import re
 
 import pandas as pd
+import pyrodigal_gv
 
 class Prodigal(object):
     
@@ -13,49 +11,56 @@ class Prodigal(object):
         for key, val in vars(obj).items():
             setattr(self, key, val)
 
-    def run_prod(self):
+    def run_prod(self) -> None:
 
         if not self.redo:
-            logging.info('Predicting ORFs with prodigal')
+            logging.info('Predicting ORFs with pyrodigal-gv')
 
-            # Run prodigal
-            with open(self.out+'prodigal.log', 'w') as prodigal_log:
-                subprocess.run(['prodigal', 
-                                '-i', self.fasta, 
-                                '-a', self.out+'proteins.faa', 
-                                '-p', self.prod], 
-                                stdout=subprocess.DEVNULL, 
-                                stderr=prodigal_log)
+            meta_mode = self.prod == 'meta'
+            vf = pyrodigal_gv.ViralGeneFinder(meta=meta_mode)
+            trained = meta_mode
 
-            # Check if succesful
-            self.check_rerun()
-            
-            # Make gene table
-            self.get_genes()
+            proteins_handle = open(self.prot_path, 'w')
+            genes_table = []
 
-    def check_rerun(self):
-        # Check prodigal output
-        if os.stat(self.prot_path).st_size == 0:
-            if self.prod == 'single':
-                logging.warning('Prodigal failed. Trying in meta mode')
-                self.prod = 'meta'
-                self.run_prod()
-            else:
-                logging.critical('Prodigal failed! Check the log')
+            # In single-genome mode pyrodigal-gv requires training before calling find_genes.
+            if not trained:
+                try:
+                    first_seq = next(iter(self.seq_dict.values()))
+                except StopIteration:
+                    logging.critical('No sequences available for gene prediction')
+                    sys.exit()
+                vf.train(bytes(str(first_seq), encoding="utf-8"))
+                trained = True
+
+            for contig_idx, (contig, seq) in enumerate(self.seq_dict.items(), start=1):
+                genes = vf.find_genes(bytes(str(seq), encoding="utf-8"))
+                if not genes:
+                    logging.warning('No genes predicted for contig %s', contig)
+                    continue
+
+                for gene_idx, gene in enumerate(genes, start=1):
+                    header = f'>{contig}_{gene_idx} # {gene.begin} # {gene.end} # {gene.strand}'
+                    prot = gene.translate(include_stop=False)
+                    proteins_handle.write(header + '\n')
+                    proteins_handle.write(prot + '\n')
+                    genes_table.append((contig, gene.begin, gene.end, gene.strand, gene_idx))
+
+            proteins_handle.close()
+
+            if not genes_table:
+                logging.critical('Pyrodigal-gv failed to predict any genes')
                 sys.exit()
 
-    def get_genes(self):
-        
-        with open(self.out+'genes.tab', 'w') as gene_tab:
-            subprocess.run(['grep', '^>', self.out+'proteins.faa'], stdout=gene_tab)
+            # Make gene table
+            self.genes = pd.DataFrame(genes_table, columns=('Contig', 'Start', 'End', 'Strand', 'Pos'))
+            self.genes.to_csv(self.out+'genes.tab', index=False, sep='\t')
 
-        genes = pd.read_csv(self.out+'genes.tab', sep='\s+', header=None,
-            usecols=(0,2,4,6), names=('Contig', 'Start', 'End', 'Strand'))
-
-        genes['Contig'] = [re.sub('^>','',x) for x in genes['Contig']]
-        genes['Pos'] = [int(re.sub(".*_","",x)) for x in genes['Contig']]
-        genes['Contig'] = [re.sub("_[0-9]*$","",x) for x in genes['Contig']]
-        
-        self.genes = genes
-        
-        genes.to_csv(self.out+'genes.tab', index=False, sep='\t')
+    def get_genes(self) -> None:
+        # Genes table is constructed during pyrodigal-gv prediction
+        if not hasattr(self, 'genes'):
+            try:
+                self.genes = pd.read_csv(self.out+'genes.tab', sep='\t')
+            except Exception:
+                logging.error('Gene predictions not found; run pyrodigal-gv first.')
+                sys.exit()

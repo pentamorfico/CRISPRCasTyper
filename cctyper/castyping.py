@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import re
 import logging
@@ -32,6 +32,7 @@ class Typer(object):
         tmpX = tmp.sort_values('score', ascending=False)
         tmpX['Hmm'] = [re.sub("_.*","",x) for x in tmpX['Hmm']]
         tmpX.drop_duplicates('Hmm', inplace=True)
+        tmpX.iloc[:,14:] = tmpX.iloc[:,14:].apply(pd.to_numeric, errors='coerce').fillna(0)
 
         start = list(tmp['start'])
         end = list(tmp['end'])
@@ -44,8 +45,9 @@ class Typer(object):
             start_operon = min(start+end)
             end_operon = max(start+end)
 
-        # Get scores for each type
-        type_scores = tmpX.iloc[:,14:].sum(axis=0)
+        # Get scores for each type (ensure numeric)
+        type_matrix = tmpX.iloc[:,14:]
+        type_scores = type_matrix.sum(axis=0)
         
         # Highest score and type with highest score
         best_score = np.amax(type_scores)
@@ -68,7 +70,7 @@ class Typer(object):
             # Solve problem with adjacent systems. Only check if at least 6 genes
             elif len(tmpX) >= 6:
                 # Only types with at least one specific HMM
-                zzz = tmpX.iloc[:,14:].transpose()
+                zzz = type_matrix.transpose()
                 zzz = zzz[zzz.apply(lambda r: any(r >= 3), axis=1)]
 
                 # Sum of unique genes
@@ -258,58 +260,68 @@ class Typer(object):
                 which_sub = [i for i in list(self.hmm_df['Hmm']) if key.lower() in i.lower()]
                 if len(which_sub) > 0:
                     specifics.extend(which_sub)
-                    self.hmm_df = self.hmm_df[((self.hmm_df['Eval'] < float(value[0])) & 
-                                                (self.hmm_df['Cov_seq'] >= float(value[1])) &
-                                                (self.hmm_df['Cov_hmm'] >= float(value[2]))) |
-                                                ([x not in which_sub for x in self.hmm_df['Hmm']])]
+                    is_specific = self.hmm_df['Hmm'].isin(which_sub)
+                    spec_pass = (
+                        (self.hmm_df['Eval'] < float(value[0])) &
+                        (self.hmm_df['Cov_seq'] >= float(value[1])) &
+                        (self.hmm_df['Cov_hmm'] >= float(value[2]))
+                    )
+                    self.hmm_df = self.hmm_df[spec_pass | (~is_specific)]
 
             # Apply overall thresholds for the rest
-            self.hmm_df = self.hmm_df[((self.hmm_df['Cov_seq'] >= self.ocs) & 
-                                        (self.hmm_df['Cov_hmm'] >= self.och) & 
-                                        (self.hmm_df['Eval'] < self.oev)) |
-                                        ([x in specifics for x in self.hmm_df['Hmm']])]
+            is_specific = self.hmm_df['Hmm'].isin(specifics)
+            overall_pass = (
+                (self.hmm_df['Cov_seq'] >= self.ocs) &
+                (self.hmm_df['Cov_hmm'] >= self.och) &
+                (self.hmm_df['Eval'] < self.oev)
+            )
+            self.hmm_df = self.hmm_df[overall_pass | is_specific]
           
             # Define operons
-            if self.circular and self.redo:
-                self.genes = pd.read_csv(self.out+'genes.tab', sep='\t')
-            
-            self.hmm_df = self.hmm_df.sort_values('Acc')
-            operons = self.hmm_df.groupby('Acc').apply(self.cluster_adj)
-            self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
+        if self.circular and self.redo:
+            self.genes = pd.read_csv(self.out+'genes.tab', sep='\t')
+        
+        self.hmm_df = self.hmm_df.sort_values('Acc')
+        operons = (
+            self.hmm_df
+            .groupby('Acc', group_keys=False)
+            .apply(lambda g: self.cluster_adj(g.assign(Acc=g.name)), include_groups=False)
+        )
+        self.hmm_df.loc[:,'operon'] = list(chain.from_iterable([x[0] for x in list(operons)]))
 
-            # If any circular
-            self.circ_operons = []
-            any_circ = [x[1] for x in list(operons)]
-            if any(any_circ):
-                self.circ_operons = [sorted(i)[0] for (i, v) in zip([x[0] for x in list(operons)], any_circ) if v]
+        # If any circular
+        self.circ_operons = []
+        any_circ = [x[1] for x in list(operons)]
+        if any(any_circ):
+            self.circ_operons = [sorted(i)[0] for (i, v) in zip([x[0] for x in list(operons)], any_circ) if v]
 
-            # Prepare score table
-            self.scores.fillna(0, inplace=True)
-            self.cas_hmms = list(self.scores['Hmm'])
-            
-            # Signature genes for single gene types
-            self.signature = [re.sub('_.*','',x) for x in list(specifics)]
+        # Prepare score table
+        self.scores.fillna(0, inplace=True)
+        self.cas_hmms = list(self.scores['Hmm'])
+        
+        # Signature genes for single gene types
+        self.signature = [re.sub('_.*','',x) for x in list(specifics)]
 
-            # Get single effector types
-            single_effector_hmms = self.scores[self.scores['Hmm'].isin(list(specifics))].drop('Hmm', axis=1)
-            single_effector_hmms[single_effector_hmms < 0] = 0
-            self.single_effector = list(single_effector_hmms.iloc[:, single_effector_hmms.sum(axis=0).values > 0].columns)
+        # Get single effector types
+        single_effector_hmms = self.scores[self.scores['Hmm'].isin(list(specifics))].drop('Hmm', axis=1)
+        single_effector_hmms[single_effector_hmms < 0] = 0
+        self.single_effector = list(single_effector_hmms.iloc[:, single_effector_hmms.sum(axis=0).values > 0].columns)
 
-            # Merge the tables
-            self.hmm_df_all = pd.merge(self.hmm_df, self.scores, on="Hmm")
+        # Merge the tables
+        self.hmm_df_all = pd.merge(self.hmm_df, self.scores, on="Hmm")
 
-            # Assign subtype for each operon
-            operons_unq = set(self.hmm_df_all['operon'])
-            dictlst = [self.type_operon(operonID) for operonID in operons_unq]
-            
-            # Return
-            self.preddf = pd.DataFrame(dictlst)
+        # Assign subtype for each operon
+        operons_unq = set(self.hmm_df_all['operon'])
+        dictlst = [self.type_operon(operonID) for operonID in operons_unq]
+        
+        # Return
+        self.preddf = pd.DataFrame(dictlst)
 
-            # Check if any operons
-            self.check_type()
+        # Check if any operons
+        self.check_type()
 
-            # Write cas operons
-            self.write_type()
+        # Write cas operons
+        self.write_type()
 
     def check_type(self):
         if self.any_cas:

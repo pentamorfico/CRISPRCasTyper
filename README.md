@@ -8,7 +8,7 @@ Detect CRISPR-Cas genes and arrays, and predict the subtype based on both Cas ge
 [CRISPRCasTyper and RepeatType are also available through a webserver](https://crisprcastyper.crispr.dk)
 
 This software finds Cas genes with a large suite of HMMs, then groups these HMMs into operons, and predicts the subtype of the operons based on a scoring scheme.
-Furthermore, it finds CRISPR arrays with [minced](https://github.com/ctSkennerton/minced) and by BLASTing a large suite of known repeats, and using a kmer-based machine learning approach (extreme gradient boosting trees) it predicts the subtype of the CRISPR arrays based on the consensus repeat. 
+Furthermore, it finds CRISPR arrays with [diced](https://pypi.org/project/diced/) and by BLASTing a large suite of known repeats, and using a kmer-based machine learning approach (extreme gradient boosting trees) it predicts the subtype of the CRISPR arrays based on the consensus repeat. 
 It then connects the Cas operons and CRISPR arrays, producing as output:
 * CRISPR-Cas loci, with consensus subtype prediction based on both Cas genes (mostly) and CRISPR consensus repeats
 * Orphan Cas operons, and their predicted subtype
@@ -68,7 +68,7 @@ conda create -n cctyper -c conda-forge -c bioconda -c russel88 cctyper
 ```
 
 ### pip
-If you have the dependencies (Python >= 3.8, HMMER >= 3.2, Prodigal >= 2.6, minced, grep, sed) in your PATH you can install with pip
+If you have the dependencies (Python >= 3.10) in your PATH you can install with pip. External tools still needed: `blastn`/`makeblastdb`. CRISPR detection, HMM searches, numeric-header fixes, and ORF prediction now run in Python via diced, pyhmmsearch/pyhmmer, and pyrodigal-gv.
 
 Install cctyper python module
 ```sh
@@ -118,6 +118,11 @@ cctyper genome.fa my_output --circular
 The default prodigal mode expects the input to be a single draft or complete genome
 ```sh
 cctyper assembly.fa my_output --prodigal meta
+```
+
+If you already have predicted proteins and a matching GFF with CDS features, you can skip gene calling by supplying both (the GFF is only used to map CDS positions; `--prot` is required alongside `--gff`):
+```sh
+cctyper genome.fa my_output --gff annotations.gff --prot proteins.faa
 ```
 
 #### Check the different options
@@ -205,10 +210,8 @@ cctyper -h
 * **hmmer.log**                 Error messages from HMMER (only produced if any errors were encountered)
 
 ##### If run with `--keep_tmp` the following is also produced
-* **prodigal.log**              Log from prodigal
 * **proteins.faa**              Protein sequences
 * **hmmer/*.tab**               Alignment output from HMMER for each Cas HMM
-* **minced.out:**               CRISPR array output from minced
 * **blast.tab:**                BLAST output from repeat alignment against flanking regions of cas operons
 * **Flank....:**                Fasta of flanking regions near cas operons and BLAST database of this  
 

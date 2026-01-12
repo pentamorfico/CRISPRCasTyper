@@ -22,8 +22,34 @@ class XGB(object):
 
         logging.debug('Loading xgboost model')
 
-        bst = xgb.Booster({'nthread':self.threads})
-        bst.load_model(self.xgb)
+        # Prefer modern formats if present
+        model_path = None
+        candidates = [
+            self.xgb + ".json",
+            self.xgb + ".ubj",
+            self.xgb.replace(".model", ".json"),
+            self.xgb.replace(".model", ".ubj"),
+            self.xgb,
+        ]
+        for cand in candidates:
+            if os.path.exists(cand):
+                model_path = cand
+                break
+
+        if model_path is None:
+            raise FileNotFoundError(f"Could not find XGBoost model at {self.xgb}(.json|.ubj)")
+
+        bst = xgb.Booster({'nthread': self.threads})
+        try:
+            bst.load_model(model_path)
+        except xgb.core.XGBoostError as exc:
+            msg = str(exc)
+            if "deprecated in 1.6 and removed in 3.1" in msg:
+                raise RuntimeError(
+                    f"XGBoost cannot load legacy binary model {model_path}. "
+                    f"Please use the JSON/UBJ model or downgrade xgboost<3.0."
+                ) from exc
+            raise
         self.bst = bst
 
         # Load label dict here:
@@ -126,5 +152,3 @@ class XGB(object):
             print('{}\t{}\t{}'.format(self.repeats[i], 
                                     self.z_type[i],
                                     self.z_max[i]))
-
-

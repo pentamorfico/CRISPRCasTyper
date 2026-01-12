@@ -1,14 +1,11 @@
 import os
-import subprocess
 import logging
-import sys
-import re
 import math
 import random
 
 import statistics as st
+from diced import scan
 
-from Bio import pairwise2
 from joblib import Parallel, delayed
 
 # Define the CRISPR class
@@ -22,8 +19,8 @@ class CRISPR(object):
         self.spacers = []
         self.exact = exact_stats
     def setPos(self, start, end):
-        self.start = int(start.rstrip())
-        self.end = int(end.rstrip())
+        self.start = int(start)
+        self.end = int(end)
     def addRepeat(self, repeat):
         self.repeats.append(repeat.rstrip())
     def addSpacer(self, spacer):
@@ -33,8 +30,23 @@ class CRISPR(object):
     def getConsensus(self):
         self.cons = max(set(self.repeats), key = self.repeats.count) 
     def identity(self, i, j, sqlst):
-        align = pairwise2.align.globalxx(sqlst[i], sqlst[j])
-        return(align[0][2]/align[0][4]*100)
+        # Equivalent to pairwise2.globalxx: identity based on LCS length over max length
+        a = sqlst[i]
+        b = sqlst[j]
+        if not a or not b:
+            return 0
+        m, n = len(a), len(b)
+        prev = [0] * (n + 1)
+        for ca in a:
+            curr = [0]
+            for j, cb in enumerate(b, start=1):
+                if ca == cb:
+                    curr.append(prev[j - 1] + 1)
+                else:
+                    curr.append(max(prev[j], curr[-1]))
+            prev = curr
+        lcs_len = prev[-1]
+        return (lcs_len / float(max(m, n))) * 100
     def identLoop(self, seqs, threads):
         if self.exact:
             sqr = range(len(seqs))
@@ -66,67 +78,82 @@ class Minced(object):
         for key, val in vars(obj).items():
             setattr(self, key, val)
 
-    def run_minced(self):
+    def run_minced(self) -> None:
 
         if not self.redo:
-            logging.info('Predicting CRISPR arrays with minced')
+            logging.info('Predicting CRISPR arrays with diced')
 
-            # Run minced
-            subprocess.run(['minced',
-                            '-searchWL', str(self.searchWL),
-                            '-minNR', str(self.minNR),
-                            '-minRL', str(self.minRL),
-                            '-maxRL', str(self.maxRL),
-                            '-minSL', str(self.minSL),
-                            '-maxSL', str(self.maxSL),
-                            self.fasta, 
-                            self.out+'minced.out'], 
-                            stdout=subprocess.DEVNULL, 
-                            stderr=subprocess.DEVNULL)
-        
-            # Parse
-            self.parse_minced()
+            random.seed(self.seed)
+            crisprs = []
 
+            for contig, seq in self.seq_dict.items():
+                sequence_str = str(seq)
+                try:
+                    crispr_calls = list(scan(sequence_str))
+                except Exception as exc:
+                    logging.error('diced failed on contig %s: %s', contig, exc)
+                    continue
+
+                for crispr_call in crispr_calls:
+                    try:
+                        crisp_tmp = CRISPR(contig, self.exact_stats)
+                        seq_len = len(sequence_str)
+
+                        start = max(1, min(crispr_call.start + 1, seq_len))  # convert to 1-based, clamp
+                        end = max(start, min(crispr_call.end, seq_len))
+                        crisp_tmp.setPos(start, end)
+
+                        # Materialize repeats/spacers once; diced can panic on lazy access if inconsistent
+                        bad_repeats = 0
+                        bad_spacers = 0
+
+                        # diced can panic on some indices; step through safely
+                        for ridx in range(len(crispr_call.repeats)):
+                            try:
+                                rep = crispr_call.repeats[ridx]
+                            except BaseException:
+                                bad_repeats += 1
+                                continue
+                            rs = max(0, min(rep.start, seq_len))
+                            re = max(rs, min(rep.end, seq_len))
+                            if re > rs:
+                                crisp_tmp.addRepeat(sequence_str[rs:re])
+
+                        for sidx in range(len(crispr_call.spacers)):
+                            try:
+                                spa = crispr_call.spacers[sidx]
+                            except BaseException:
+                                bad_spacers += 1
+                                continue
+                            ss = max(0, min(spa.start, seq_len))
+                            se = max(ss, min(spa.end, seq_len))
+                            if se > ss:
+                                crisp_tmp.addSpacer(sequence_str[ss:se])
+
+                        if bad_repeats or bad_spacers:
+                            logging.error(
+                                'diced returned %s bad repeats and %s bad spacers on %s; skipped those elements',
+                                bad_repeats, bad_spacers, contig
+                            )
+
+                        if not crisp_tmp.repeats:
+                            logging.warning('diced produced a call with no repeats on %s; skipping', contig)
+                            continue
+
+                        crisp_tmp.getConsensus()
+                        crisp_tmp.stats(self.threads, self.repeat_id, self.spacer_id, self.spacer_sem)
+                        crisprs.append(crisp_tmp)
+                    except BaseException as exc:
+                        logging.error('failed to process diced call on contig %s: %s', contig, exc)
+                        continue
+
+            self.crisprs = crisprs
+            
             # Write results
             self.write_crisprs()
             self.write_spacers()
 
-    def parse_minced(self):
-        file = open(self.out+'minced.out', 'r')
-
-        random.seed(self.seed)
-        
-        crisprs = []
-        for ll in file:
-            # Record sequence accession
-            if ll.startswith('Sequence'):
-                sequence_current = re.sub('\' \(.*', '', re.sub('Sequence \'', '', ll))
-            # Create instance of CRISPR and add positions
-            if ll.startswith('CRISPR'):
-                crisp_tmp = CRISPR(sequence_current, self.exact_stats)
-                pos = re.sub('.*Range: ', '', ll)
-                start = re.sub(' - .*', '', pos)
-                end = re.sub('.* - ', '', pos)
-                crisp_tmp.setPos(start, end)
-            # Add Repeats and Spacers to the current instance
-            if ll[:1].isdigit():
-                lll = ll.split()
-                if len(lll) == 7:
-                    crisp_tmp.addRepeat(lll[1])
-                    crisp_tmp.addSpacer(lll[2])
-                if len(lll) == 2:
-                    crisp_tmp.addRepeat(lll[1])
-            # Save the instance
-            if ll.startswith('Repeats'):
-                crisp_tmp.getConsensus()
-                crisp_tmp.stats(self.threads, self.repeat_id, self.spacer_id, self.spacer_sem)
-                crisprs.append(crisp_tmp)
-
-        file.close()
-
-        self.crisprs = crisprs
-
-    def write_crisprs(self):
+    def write_crisprs(self) -> None:
        
         header = '{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}\n'.format('Contig',
                                                                     'CRISPR',
@@ -161,7 +188,7 @@ class Minced(object):
             write_crisp(f, crisp)
         f.close()
 
-    def write_spacers(self):
+    def write_spacers(self) -> None:
         
         if len(self.crisprs) > 0:
             os.mkdir(self.out+'spacers')
@@ -174,7 +201,3 @@ class Minced(object):
                     f.write('{}\n'.format(sq))
 
                 f.close()
-
-
-
-
