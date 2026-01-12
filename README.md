@@ -70,7 +70,7 @@ positional arguments:
 > **Note**: We no longer advise installing via conda. The full pipeline (CRISPR detection, HMM searches, ORF prediction) now runs inside Python via diced, pyhmmsearch/pyhmmer, and pyrodigal-gv, and the database/models ship with the wheel/sdist. The only external binary you need is BLAST+ (`makeblastdb`/`blastn`) available from bioconda or your OS package manager.
 
 ### pip
-If you have the dependencies (Python >= 3.10) you can install with pip. External tools still needed: `blastn`/`makeblastdb` (install via `conda install -c bioconda blast`)
+If you have the dependencies (Python >= 3.10) you can install with pip. External tools still needed: `blastn`/`makeblastdb` (install via `conda install -c bioconda blast`). The CRISPRCasTyper database and ML models are packaged under `cctyper/data` in the wheel/sdist (no manual download needed); use `--db` or `CCTYPER_DB` only to override the bundled data.
 
 Install from the repo:
 ```sh
@@ -296,7 +296,8 @@ Each model contains a training report (xgb_report), where you can find the train
 Save the original database files:
 ```sh
 mv ${CCTYPER_DB}/type_dict.tab ${CCTYPER_DB}/type_dict_orig.tab
-mv ${CCTYPER_DB}/xgb_repeats.model ${CCTYPER_DB}/xgb_repeats_orig.model
+mv ${CCTYPER_DB}/xgb_repeats.json ${CCTYPER_DB}/xgb_repeats_orig.json
+mv ${CCTYPER_DB}/xgb_repeats.ubj ${CCTYPER_DB}/xgb_repeats_orig.ubj
 ```
 
 Move the new model into the database folder
@@ -323,7 +324,8 @@ repeatType repeats.txt --db my_classifier
 Save the original database files:
 ```sh
 mv ${CCTYPER_DB}/type_dict.tab ${CCTYPER_DB}/type_dict_orig.tab
-mv ${CCTYPER_DB}/xgb_repeats.model ${CCTYPER_DB}/xgb_repeats_orig.model
+mv ${CCTYPER_DB}/xgb_repeats.json ${CCTYPER_DB}/xgb_repeats_orig.json
+mv ${CCTYPER_DB}/xgb_repeats.ubj ${CCTYPER_DB}/xgb_repeats_orig.ubj
 ```
 
 Move the new model into the database folder

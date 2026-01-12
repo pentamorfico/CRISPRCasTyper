@@ -1,17 +1,19 @@
 import os
 import sys
 import re
+from typing import List
 
 from cctyper.resources import resolve_database_path
 
 class RepeatTyper(object):
 
-    def __init__(self, args):
+    def __init__(self, args) -> None:
        
-        self.input = args.input
-        self.db = args.db
-        self.threads = 1
-        self.kmer = args.kmer
+        self.input: str = args.input
+        self.db: str = args.db
+        self.threads: int = 1
+        self.kmer: int = args.kmer
+        self.repeats: List[str] = []
 
         # Check databases
         self.check_db()
@@ -19,7 +21,7 @@ class RepeatTyper(object):
         # Read input
         self.read_input()
 
-    def check_db(self):
+    def check_db(self) -> None:
 
         try:
             db_path = resolve_database_path(self.db)
@@ -31,14 +33,14 @@ class RepeatTyper(object):
         self.xgb = os.path.join(self.db, "xgb_repeats.model")
         self.typedict = os.path.join(self.db, "type_dict.tab")
 
-    def read_input(self):
+    def read_input(self) -> None:
         
         # Load input:
         with open(self.input, 'r') as f:
             self.repeats = [ll.rstrip() for ll in f]
 
         # Check input
-        def is_dna(s):
+        def is_dna(s: str) -> bool:
             match = re.match("^[ACTGactg]*$", s)
             return match is not None
 
