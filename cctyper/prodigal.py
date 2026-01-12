@@ -1,12 +1,13 @@
 import logging
 import sys
+from typing import Dict
 
 import pandas as pd
 import pyrodigal_gv
 
 class Prodigal(object):
     
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)

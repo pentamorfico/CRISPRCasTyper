@@ -284,14 +284,6 @@ The script prints:
 * VI-C     0.67
 * VI-D     0.97
 
-### Updated RepeatTyper models <a name="repeatnew"></a>
-The [CCTyper webserver](https://typer.crispr.dk) is crowdsourcing subtyped repeats and includes an updated RepeatTyper model based on a much larger set of repeats and contains additional subtypes compared to the curated RepeatTyper model. 
-This updated model is automatically retrained each month and the models can be downloaded [here](http://mibi.galaxy.bio.ku.dk/russel/repeattyper/).
-
-From version 1.4.0 and onwards of CCTyper the newest repeatTyper model is included upon release of the version.
-
-Each model contains a training report (xgb_report), where you can find the training log, and in the bottom the accuracy, both overall and per subtype.
-
 #### Use new model in CRISPRCasTyper
 Save the original database files:
 ```sh

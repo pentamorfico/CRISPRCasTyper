@@ -4,6 +4,7 @@ import logging
 import re
 import sys
 from pathlib import Path
+from typing import Dict
 
 import pandas as pd
 from Bio import SeqIO
@@ -11,7 +12,7 @@ from Bio import SeqIO
 
 class GFF(object):
 
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
@@ -99,8 +100,8 @@ class GFF(object):
                 header = f">{pid} # {row['Contig']}_{int(row['Pos'])} # {int(row['Start'])} # {int(row['End'])} # {int(row['Strand'])}"
                 fh.write(f"{header}\n{str(rec.seq)}\n")
 
-    def _load_proteins(self):
-        records = {}
+    def _load_proteins(self) -> Dict[str, SeqIO.SeqRecord]:
+        records: Dict[str, SeqIO.SeqRecord] = {}
         for record in SeqIO.parse(self.prot, "fasta"):
             records[record.id] = record
         if not records:
