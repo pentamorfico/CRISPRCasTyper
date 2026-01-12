@@ -10,15 +10,16 @@ import multiprocessing as mp
 
 from itertools import chain
 from scipy import ndimage
+from typing import List, Any
 
 class Typer(object):
 
-    def __init__(self, obj):
+    def __init__(self, obj) -> None:
         self.master = obj
         for key, val in vars(obj).items():
             setattr(self, key, val)
 
-    def type_operon(self, operon):
+    def type_operon(self, operon: str):
         '''
         Subtype of a single operon
         '''

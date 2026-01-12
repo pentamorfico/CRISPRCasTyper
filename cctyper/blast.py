@@ -138,7 +138,7 @@ class RepeatMatch(object):
         logging.debug('Removing overlapping matches')
 
         # Sort by alignment quality
-        self.df = self.df.sort_values(['Acc', 'Score'], ascending=False) 
+            self.df = self.df.sort_values(['Acc', 'Score'], ascending=False) 
 
         overlap_lst = []
         for i in set(self.df['Acc']):

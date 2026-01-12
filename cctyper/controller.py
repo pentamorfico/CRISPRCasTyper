@@ -16,7 +16,7 @@ from cctyper.resources import resolve_database_path
 
 class Controller(object):
 
-    def __init__(self, args):
+    def __init__(self, args) -> None:
        
         self.fasta: str = args.input
         self.out: str = args.output
@@ -102,7 +102,7 @@ class Controller(object):
             f.write('{}:\t{}\n'.format(k, v))
         f.close()
 
-    def check_out(self):
+    def check_out(self) -> None:
 
         if not self.redo:
             try:
@@ -111,7 +111,7 @@ class Controller(object):
                 logging.error('Directory '+self.out+' already exists')
                 sys.exit()
 
-    def check_input(self):
+    def check_input(self) -> None:
 
         if os.path.isfile(self.fasta):
             self.check_fasta()
@@ -130,7 +130,7 @@ class Controller(object):
                 logging.error('Could not find protein FASTA file %s', self.prot)
                 sys.exit()
 
-    def check_fasta(self):
+    def check_fasta(self) -> None:
         
         # Get sequence lengths
         with open(self.fasta, 'r') as handle:

@@ -27,8 +27,7 @@ It then connects the Cas operons and CRISPR arrays, producing as output:
 * V-M (cas12m): [The miniature CRISPR-Cas12m effector binds DNA to block transcription](https://doi.org/10.1016/j.molcel.2022.11.003)
 * II-D and II-C2: [Compact Cas9d and HEARO enzymes for genome editing discovered from uncultivated microbes](https://doi.org/10.1038/s41467-022-35257-7)
 
-#### It can automatically draw gene maps of CRISPR-Cas systems and orphan Cas operons and CRISPR arrays
-##### in vector graphics format for direct use in scientific manuscripts
+#### It can automatically draw gene maps of CRISPR-Cas systems and orphan Cas operons and CRISPR arrays in vector graphics format for direct use in scientific manuscripts
 <img src='img/plot.svg' align="left" height="200" />
 
 #### Citation
