@@ -33,8 +33,7 @@ dependencies = [
     "drawsvg >= 2.0.0",
     "pyrodigal-gv >= 0.3",
     "diced >= 0.1.1",
-    "pyhmmsearch >= 2025.10.23.post1",
-    "pyhmmer >= 0.10.14, <0.11",
+    "pyhmmer >= 0.10.14",
     "zstandard",
     "setuptools",
 ]
