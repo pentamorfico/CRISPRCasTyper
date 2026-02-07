@@ -33,7 +33,7 @@ dependencies = [
     "drawsvg >= 2.0.0",
     "pyrodigal-gv >= 0.3",
     "diced >= 0.1.1",
-    "pyhmmer >= 0.10.14",
+    "pyhmmer >= 0.10.14, < 0.12",
     "zstandard",
     "setuptools",
 ]
