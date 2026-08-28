@@ -2,6 +2,8 @@ import os
 import sys
 import re
 
+from cctyper.resources import resolve_database_path
+
 class RepeatTyper(object):
 
     def __init__(self, args):
@@ -18,19 +20,16 @@ class RepeatTyper(object):
         self.read_input()
 
     def check_db(self):
-        
-        if self.db == '':
-            try:
-                DB_PATH = os.environ['CCTYPER_DB']
-                self.xgb = os.path.join(DB_PATH, 'xgb_repeats.model')
-                self.typedict = os.path.join(DB_PATH, 'type_dict.tab')
-            except:
-                print('Could not find database directory')
-                sys.exit()
 
-        else:
-            self.xgb = os.path.join(self.db, "xgb_repeats.model")
-            self.typedict = os.path.join(self.db, "type_dict.tab")
+        try:
+            db_path = resolve_database_path(self.db)
+        except RuntimeError as err:
+            print(err)
+            sys.exit()
+
+        self.db = db_path
+        self.xgb = os.path.join(self.db, "xgb_repeats.model")
+        self.typedict = os.path.join(self.db, "type_dict.tab")
 
     def read_input(self):
         

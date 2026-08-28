@@ -1,5 +1,5 @@
 [![Project Status: Active - The project has reached a stable, usable state and is being actively developed.](http://www.repostatus.org/badges/latest/active.svg)](http://www.repostatus.org/#active)
-[![Conda](https://anaconda.org/russel88/cctyper/badges/installer/conda.svg)](https://anaconda.org/russel88/cctyper)
+[![Install: pip recommended](https://img.shields.io/badge/install-pip%20recommended-orange)](https://pypi.org/project/cctyper/)
 
 # CRISPRCasTyper
 
@@ -8,7 +8,7 @@ Detect CRISPR-Cas genes and arrays, and predict the subtype based on both Cas ge
 [CRISPRCasTyper and RepeatType are also available through a webserver](https://crisprcastyper.crispr.dk)
 
 This software finds Cas genes with a large suite of HMMs, then groups these HMMs into operons, and predicts the subtype of the operons based on a scoring scheme.
-Furthermore, it finds CRISPR arrays with [minced](https://github.com/ctSkennerton/minced) and by BLASTing a large suite of known repeats, and using a kmer-based machine learning approach (extreme gradient boosting trees) it predicts the subtype of the CRISPR arrays based on the consensus repeat. 
+Furthermore, it finds CRISPR arrays with [diced](https://pypi.org/project/diced/) and by BLASTing a large suite of known repeats, and using a kmer-based machine learning approach (extreme gradient boosting trees) it predicts the subtype of the CRISPR arrays based on the consensus repeat. 
 It then connects the Cas operons and CRISPR arrays, producing as output:
 * CRISPR-Cas loci, with consensus subtype prediction based on both Cas genes (mostly) and CRISPR consensus repeats
 * Orphan Cas operons, and their predicted subtype
@@ -27,8 +27,7 @@ It then connects the Cas operons and CRISPR arrays, producing as output:
 * V-M (cas12m): [The miniature CRISPR-Cas12m effector binds DNA to block transcription](https://doi.org/10.1016/j.molcel.2022.11.003)
 * II-D and II-C2: [Compact Cas9d and HEARO enzymes for genome editing discovered from uncultivated microbes](https://doi.org/10.1038/s41467-022-35257-7)
 
-#### It can automatically draw gene maps of CRISPR-Cas systems and orphan Cas operons and CRISPR arrays
-##### in vector graphics format for direct use in scientific manuscripts
+#### It can automatically draw gene maps of CRISPR-Cas systems and orphan Cas operons and CRISPR arrays in vector graphics format for direct use in scientific manuscripts
 <img src='img/plot.svg' align="left" height="200" />
 
 #### Citation
@@ -49,60 +48,39 @@ Find a free to read version on [BioRxiv](https://doi.org/10.1101/2020.05.15.0978
 ## Quick start <a name="quick"></a>
 
 ```sh
-conda create -n cctyper -c conda-forge -c bioconda -c russel88 cctyper
-conda activate cctyper
 cctyper my.fasta my_output
 ```
 
-## Installation <a name="install"></a>
-CRISPRCasTyper can be installed either through conda or pip.
-
-It is advised to use conda, since this installs CRISPRCasTyper and all dependencies, and downloads the database in one go.
-
-### Conda
-Use [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [anaconda](https://www.anaconda.com/) to install.
-
-Create the environment with CRISPRCasTyper and all dependencies and database
 ```sh
-conda create -n cctyper -c conda-forge -c bioconda -c russel88 cctyper
+usage: cctyper [-h] [-t THREADS] [--prodigal {single,meta}] [--circular] [--keep_tmp] [--log_lvl {DEBUG,INFO,WARNING,ERROR}] [--redo_typing] [--simplelog] [--gff GFF] [--prot PROT] [--db DB] [--dist DIST] [--overall_eval OVERALL_EVAL] [--overall_cov_seq OVERALL_COV_SEQ] [--overall_cov_hmm OVERALL_COV_HMM] [--ccd CCD] [--pred_prob PRED_PROB] [--kmer KMER] [--repeat_id REPEAT_ID] [--spacer_id SPACER_ID] [--spacer_sem SPACER_SEM] [--exact_stats] [--seed SEED]
+               [--skip_blast] [--searchWL SEARCHWL] [--minNR MINNR] [--minRL MINRL] [--maxRL MAXRL] [--minSL MINSL] [--maxSL MAXSL] [--expand EXPAND] [--custom_hmm CUSTOM_HMM] [--no_plot] [--no_grid]
+               input output
+
+CRISPRCasTyper version 1.9.0
+
+positional arguments:
+  input                 Input fasta file
+  output                Prefix for output directory
 ```
+
+## Installation <a name="install"></a>
+
+
+> **Note**: We no longer advise installing via conda. The full pipeline (CRISPR detection, HMM searches, ORF prediction) now runs inside Python via diced, pyhmmsearch/pyhmmer, and pyrodigal-gv, and the database/models ship with the wheel/sdist. The only external binary you need is BLAST+ (`makeblastdb`/`blastn`) available from bioconda or your OS package manager.
 
 ### pip
-If you have the dependencies (Python >= 3.8, HMMER >= 3.2, Prodigal >= 2.6, minced, grep, sed) in your PATH you can install with pip
+If you have the dependencies (Python >= 3.10) you can install with pip. External tools still needed: `blastn`/`makeblastdb` (install via `conda install -c bioconda blast`). The CRISPRCasTyper database and ML models are packaged under `cctyper/data` in the wheel/sdist (no manual download needed); use `--db` or `CCTYPER_DB` only to override the bundled data.
 
-Install cctyper python module
+Install from the repo:
 ```sh
-python -m pip install cctyper
+mamba create -n cctyper bioconda::blast "python>=3.10"
+mamba activate cctyper
+pip install git+https://github.com/pentamorfico/CRISPRCasTyper.git
 ```
 
-Upgrade cctyper python module to the latest version
-```sh
-python -m pip install cctyper --upgrade
-```
-
-
-#### When installing with pip, you need to download the database manually: 
-```sh
-# Download and unpack
-svn checkout https://github.com/Russel88/CRISPRCasTyper/trunk/data
-tar -xvzf data/Profiles.tar.gz
-mv Profiles/ data/
-rm data/Profiles.tar.gz
-
-# Tell CRISPRCasTyper where the data is:
-# either by setting an environment variable (has to be done for each terminal session, or added to .bashrc):
-export CCTYPER_DB="/path/to/data/"
-# or by using the --db argument each time you run CRISPRCasTyper:
-cctyper input.fa output --db /path/to/data/
-```
 
 ## CRISPRCasTyper - How to <a name="cctyperhow"></a>
 CRISPRCasTyper takes as input a nucleotide fasta, and produces outputs with CRISPR-Cas predictions
-
-#### Activate environment
-```sh
-conda activate cctyper
-```
 
 #### Run with a nucleotide fasta as input
 ```sh
@@ -118,6 +96,11 @@ cctyper genome.fa my_output --circular
 The default prodigal mode expects the input to be a single draft or complete genome
 ```sh
 cctyper assembly.fa my_output --prodigal meta
+```
+
+If you already have predicted proteins and a matching GFF with CDS features, you can skip gene calling by supplying both (the GFF is only used to map CDS positions; `--prot` is required alongside `--gff`):
+```sh
+cctyper genome.fa my_output --gff annotations.gff --prot proteins.faa
 ```
 
 #### Check the different options
@@ -203,12 +186,11 @@ cctyper -h
     * Pos: Gene ID
 * **arguments.tab:**            File with arguments given to CRISPRCasTyper
 * **hmmer.log**                 Error messages from HMMER (only produced if any errors were encountered)
+* **crisprs.gff**                 GFF with CRISPR arrays
 
 ##### If run with `--keep_tmp` the following is also produced
-* **prodigal.log**              Log from prodigal
 * **proteins.faa**              Protein sequences
 * **hmmer/*.tab**               Alignment output from HMMER for each Cas HMM
-* **minced.out:**               CRISPR array output from minced
 * **blast.tab:**                BLAST output from repeat alignment against flanking regions of cas operons
 * **Flank....:**                Fasta of flanking regions near cas operons and BLAST database of this  
 
@@ -302,19 +284,12 @@ The script prints:
 * VI-C     0.67
 * VI-D     0.97
 
-### Updated RepeatTyper models <a name="repeatnew"></a>
-The [CCTyper webserver](https://typer.crispr.dk) is crowdsourcing subtyped repeats and includes an updated RepeatTyper model based on a much larger set of repeats and contains additional subtypes compared to the curated RepeatTyper model. 
-This updated model is automatically retrained each month and the models can be downloaded [here](http://mibi.galaxy.bio.ku.dk/russel/repeattyper/).
-
-From version 1.4.0 and onwards of CCTyper the newest repeatTyper model is included upon release of the version.
-
-Each model contains a training report (xgb_report), where you can find the training log, and in the bottom the accuracy, both overall and per subtype.
-
 #### Use new model in CRISPRCasTyper
 Save the original database files:
 ```sh
 mv ${CCTYPER_DB}/type_dict.tab ${CCTYPER_DB}/type_dict_orig.tab
-mv ${CCTYPER_DB}/xgb_repeats.model ${CCTYPER_DB}/xgb_repeats_orig.model
+mv ${CCTYPER_DB}/xgb_repeats.json ${CCTYPER_DB}/xgb_repeats_orig.json
+mv ${CCTYPER_DB}/xgb_repeats.ubj ${CCTYPER_DB}/xgb_repeats_orig.ubj
 ```
 
 Move the new model into the database folder
@@ -341,7 +316,8 @@ repeatType repeats.txt --db my_classifier
 Save the original database files:
 ```sh
 mv ${CCTYPER_DB}/type_dict.tab ${CCTYPER_DB}/type_dict_orig.tab
-mv ${CCTYPER_DB}/xgb_repeats.model ${CCTYPER_DB}/xgb_repeats_orig.model
+mv ${CCTYPER_DB}/xgb_repeats.json ${CCTYPER_DB}/xgb_repeats_orig.json
+mv ${CCTYPER_DB}/xgb_repeats.ubj ${CCTYPER_DB}/xgb_repeats_orig.ubj
 ```
 
 Move the new model into the database folder
