@@ -73,7 +73,7 @@ If you have the dependencies (Python >= 3.10) you can install with pip. External
 
 Install from the repo:
 ```sh
-mamba create -n cctyper bioconda::blast python>=3.10
+mamba create -n cctyper bioconda::blast "python>=3.10"
 mamba activate cctyper
 pip install git+https://github.com/pentamorfico/CRISPRCasTyper.git
 ```
