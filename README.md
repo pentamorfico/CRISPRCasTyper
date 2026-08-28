@@ -186,6 +186,7 @@ cctyper -h
     * Pos: Gene ID
 * **arguments.tab:**            File with arguments given to CRISPRCasTyper
 * **hmmer.log**                 Error messages from HMMER (only produced if any errors were encountered)
+* **crisprs.gff**                 GFF with CRISPR arrays
 
 ##### If run with `--keep_tmp` the following is also produced
 * **proteins.faa**              Protein sequences
