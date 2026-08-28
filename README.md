@@ -75,7 +75,7 @@ Install from the repo:
 ```sh
 mamba create -n cctyper bioconda::blast "python>=3.10"
 mamba activate cctyper
-pip install git+https://github.com/pentamorfico/CRISPRCasTyper.git
+pip install git+https://github.com/Russel88/CRISPRCasTyper.git
 ```
 
 
